@@ -1,5 +1,6 @@
 import sys,os,time,logging,json,shutil
 from pymysql import NULL
+from pyparsing import Or
 import requests
 import sqlite3
 
@@ -47,7 +48,7 @@ def SaveRepo(repo,repo_name,sync_folder,tag):
     if not os.path.exists(f"{root_path}/lib/{repo_name}"): 
         os.mkdir(f"{root_path}/lib/{repo_name}")
     try:
-        if sync_folder is None:
+        if sync_folder == None or sync_folder == "":
             os.rename(f"{root_path}/{repo_name}",f"{root_path}/lib/{repo_name}/{tag}")
         else:
             os.rename(f"{root_path}/{repo_name}/{sync_folder}",f"{root_path}/lib/{repo_name}/{tag}")
