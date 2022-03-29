@@ -7,7 +7,7 @@ import sqlite3
 root_path = os.path.dirname((os.path.abspath(__file__)))
 github_api = "https://api.github.com"
 github_base = "https://github.91chi.fun/https://github.com"
-bark_url = "http://push.api.amarea.cn/w7Wa4cZqemGL3T3Gs3S6u4/"
+bark_url = "https://api.day.app/yourkey/"
 log_file = "sync.log"
 conn = sqlite3.connect('repo.db')
 
