@@ -1,4 +1,4 @@
-import sys,os,time,logging,json,shutil
+import sys,os,time,logging,shutil
 import requests
 import sqlite3
 
