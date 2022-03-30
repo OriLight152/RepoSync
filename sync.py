@@ -1,6 +1,4 @@
 import sys,os,time,logging,json,shutil
-from pymysql import NULL
-from pyparsing import Or
 import requests
 import sqlite3
 
@@ -52,13 +50,12 @@ def SaveRepo(repo,repo_name,sync_folder,tag):
             os.rename(f"{root_path}/{repo_name}",f"{root_path}/lib/{repo_name}/{tag}")
         else:
             os.rename(f"{root_path}/{repo_name}/{sync_folder}",f"{root_path}/lib/{repo_name}/{tag}")
-            # shutil.rmtree(f"{root_path}/{repo_name}")
+            shutil.rmtree(f"{root_path}/{repo_name}")
         conn.execute(f"UPDATE repo SET local_tag = '{tag}' WHERE repo = '{repo}'")
         conn.commit()
         data = {"title":"LibSync","body":f"已同步 {repo_name} 的 {tag} 版本"}
         response = requests.post(url=bark_url,data=data)
-        str = json.loads(response.text)
-        if str['message'] == "success":
+        if response.json()['message'] == "success":
             logging.info("通知推送成功")
         else:
             logging.warning("通知推送失败")
