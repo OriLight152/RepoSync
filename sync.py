@@ -66,7 +66,7 @@ def CheckRepo(repo_data):
         logging.info(f"{repo} 最新版本 {tag_name} 本地版本 {local_tag} 无需更新")
 
 def SaveRepoViaClone(repo,repo_name,sync_folder,tag):
-    os.system(f"git clone -b {tag} --depth=1 {github_base}/{repo}")
+    os.system(f"git clone -b {tag} --depth=1 {github_proxy}/{repo}")
     if not os.path.exists(f"{root_path}/lib"): 
         os.mkdir(f"{root_path}/lib")
     if not os.path.exists(f"{root_path}/lib/{repo_name}"): 
@@ -76,11 +76,11 @@ def SaveRepoViaClone(repo,repo_name,sync_folder,tag):
             os.rename(f"{root_path}/{repo_name}",f"{root_path}/lib/{repo_name}/{tag}")
         else:
             os.rename(f"{root_path}/{repo_name}/{sync_folder}",f"{root_path}/lib/{repo_name}/{tag}")
-            shutil.rmtree(f"{root_path}/{repo_name}")
+            # shutil.rmtree(f"{root_path}/{repo_name}")
         UpdateLocalTag(repo,tag)
         BarkPush("RepoSync",f"已同步 {repo_name}@{tag}")
     except Exception as e:
-        logging(f"{repo}的同步出现错误")
+        logging.warning(f"{repo}的同步出现错误")
         logging.exception(e)
 
 def SaveRepoViaRelease(repo,repo_name,sync_release_file,sync_folder,tag):
@@ -108,7 +108,7 @@ def SaveRepoViaRelease(repo,repo_name,sync_release_file,sync_folder,tag):
                 BarkPush("RepoSync",f"已同步 {repo_name}@{tag}")
                 break
     except Exception as e:
-        logging(f"{repo}的同步出现错误")
+        logging.warning(f"{repo}的同步出现错误")
         logging.exception(e)
 
 def tarExt(filename,folder):
