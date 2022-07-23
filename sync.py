@@ -1,13 +1,14 @@
-import sys,os,time,logging,shutil
-import requests,tarfile
-import sqlite3
+import sys, os, time, logging, shutil, json
+import requests, tarfile
 
-root_path = os.path.dirname((os.path.abspath(__file__)))
-github_api = "https://api.github.com"
-github_base = "https://github.com"
-github_proxy = "https://github.91chi.fun/https://github.com"
-bark_url = "https://api.day.app/yourkey/"
-log_file = "sync.log"
+ROOT_PATH = os.path.dirname((os.path.abspath(__file__)))
+GITHUB_API_BASE = "https://api.github.com"
+GITHUB_BASE = "https://github.com"
+GITHUB_PROXY = "https://github.91chi.fun/https://github.com"
+BARK_URL = "https://api.day.app/yourkey/"
+DATABASE_FILE = 'repos.json'
+LOG_FILE = "sync.log"
+
 
 def main(argv=None):
     LogInit()
@@ -21,6 +22,7 @@ def main(argv=None):
     logging.info("同步程序执行完毕")
     logging.info("————————————")
 
+
 def GetRepoList():
     sql_query = "SELECT * FROM repo"
     try:
@@ -33,19 +35,23 @@ def GetRepoList():
     conn.close()
     return list(data)
 
+
 def GetTagName(repo):
-    response = requests.get(f"{github_api}/repos/{repo}/releases/latest")
+    response = requests.get(f"{GITHUB_API_BASE}/repos/{repo}/releases/latest")
     return response.json()["tag_name"]
 
-def UpdateLocalTag(repo,new_tag):
+
+def UpdateLocalTag(repo, new_tag):
     try:
         conn = sqlite3.connect('repo.db')
-        conn.execute(f"UPDATE repo SET local_tag = '{new_tag}' WHERE repo = '{repo}'")
+        conn.execute(
+            f"UPDATE repo SET local_tag = '{new_tag}' WHERE repo = '{repo}'")
         conn.commit()
         conn.close()
     except Exception as e:
         logging.warning("本地tag更新失败")
         logging.exception(e)
+
 
 def CheckRepo(repo_data):
     repo = repo_data[0]
@@ -55,63 +61,72 @@ def CheckRepo(repo_data):
     sync_folder = repo_data[4]
     local_tag = repo_data[5]
     tag_name = GetTagName(repo)
-    if tag_name != local_tag :
+    if tag_name != local_tag:
         logging.info(f"{repo} 最新版本 {tag_name} 本地版本 {local_tag}")
         logging.info(f'尝试同步 {repo} 的 {tag_name} 版本')
         if sync_type == 1:
-            SaveRepoViaClone(repo,repo_name,sync_folder,tag_name)
+            SaveRepoViaClone(repo, repo_name, sync_folder, tag_name)
         elif sync_type == 2:
-            SaveRepoViaRelease(repo,repo_name,sync_release_file,sync_folder,tag_name) 
+            SaveRepoViaRelease(repo, repo_name, sync_release_file, sync_folder,
+                               tag_name)
     else:
         logging.info(f"{repo} 最新版本 {tag_name} 本地版本 {local_tag} 无需更新")
 
-def SaveRepoViaClone(repo,repo_name,sync_folder,tag):
-    os.system(f"git clone -b {tag} --depth=1 {github_proxy}/{repo}")
-    if not os.path.exists(f"{root_path}/lib"): 
-        os.mkdir(f"{root_path}/lib")
-    if not os.path.exists(f"{root_path}/lib/{repo_name}"): 
-        os.mkdir(f"{root_path}/lib/{repo_name}")
+
+def SaveRepoViaClone(repo, repo_name, sync_folder, tag):
+    os.system(f"git clone -b {tag} --depth=1 {GITHUB_PROXY}/{repo}")
+    if not os.path.exists(f"{ROOT_PATH}/lib"):
+        os.mkdir(f"{ROOT_PATH}/lib")
+    if not os.path.exists(f"{ROOT_PATH}/lib/{repo_name}"):
+        os.mkdir(f"{ROOT_PATH}/lib/{repo_name}")
     try:
         if sync_folder == None or sync_folder == "":
-            os.rename(f"{root_path}/{repo_name}",f"{root_path}/lib/{repo_name}/{tag}")
+            os.rename(f"{ROOT_PATH}/{repo_name}",
+                      f"{ROOT_PATH}/lib/{repo_name}/{tag}")
         else:
-            os.rename(f"{root_path}/{repo_name}/{sync_folder}",f"{root_path}/lib/{repo_name}/{tag}")
+            os.rename(f"{ROOT_PATH}/{repo_name}/{sync_folder}",
+                      f"{ROOT_PATH}/lib/{repo_name}/{tag}")
             # shutil.rmtree(f"{root_path}/{repo_name}")
-        UpdateLocalTag(repo,tag)
-        BarkPush("RepoSync",f"已同步 {repo_name}@{tag}")
+        UpdateLocalTag(repo, tag)
+        BarkPush("RepoSync", f"已同步 {repo_name}@{tag}")
     except Exception as e:
         logging.warning(f"{repo}的同步出现错误")
         logging.exception(e)
 
-def SaveRepoViaRelease(repo,repo_name,sync_release_file,sync_folder,tag):
+
+def SaveRepoViaRelease(repo, repo_name, sync_release_file, sync_folder, tag):
     try:
-        response = requests.get(f"{github_api}/repos/{repo}/releases/latest")
+        response = requests.get(f"{GITHUB_API_BASE}/repos/{repo}/releases/latest")
         for asset in response.json()["assets"]:
-            f_url = asset["browser_download_url"].replace(github_base,github_proxy)
+            f_url = asset["browser_download_url"].replace(
+                GITHUB_BASE, GITHUB_PROXY)
             if os.path.basename(f_url) == sync_release_file:
-                r = requests.get(f_url,allow_redirects=True)
-                with open(sync_release_file,'wb') as f:
+                r = requests.get(f_url, allow_redirects=True)
+                with open(sync_release_file, 'wb') as f:
                     f.write(r._content)
                     f.close()
-                tarExt(sync_release_file,repo_name)
+                tarExt(sync_release_file, repo_name)
                 os.remove(f"./{sync_release_file}")
-                if not os.path.exists(f"{root_path}/lib"): 
-                    os.mkdir(f"{root_path}/lib")
-                if not os.path.exists(f"{root_path}/lib/{repo_name}"): 
-                    os.mkdir(f"{root_path}/lib/{repo_name}")
+                if not os.path.exists(f"{ROOT_PATH}/lib"):
+                    os.mkdir(f"{ROOT_PATH}/lib")
+                if not os.path.exists(f"{ROOT_PATH}/lib/{repo_name}"):
+                    os.mkdir(f"{ROOT_PATH}/lib/{repo_name}")
                 if sync_folder == None or sync_folder == "":
-                    os.rename(f"{root_path}/{repo_name}",f"{root_path}/lib/{repo_name}/{tag}")
+                    os.rename(f"{ROOT_PATH}/{repo_name}",
+                              f"{ROOT_PATH}/lib/{repo_name}/{tag}")
                 else:
-                    os.rename(f"{root_path}/{repo_name}/{sync_folder}",f"{root_path}/lib/{repo_name}/{tag}")
-                    shutil.rmtree(f"{root_path}/{repo_name}")
-                UpdateLocalTag(repo,tag)
-                BarkPush("RepoSync",f"已同步 {repo_name}@{tag}")
+                    os.rename(f"{ROOT_PATH}/{repo_name}/{sync_folder}",
+                              f"{ROOT_PATH}/lib/{repo_name}/{tag}")
+                    shutil.rmtree(f"{ROOT_PATH}/{repo_name}")
+                UpdateLocalTag(repo, tag)
+                BarkPush("RepoSync", f"已同步 {repo_name}@{tag}")
                 break
     except Exception as e:
         logging.warning(f"{repo}的同步出现错误")
         logging.exception(e)
 
-def tarExt(filename,folder):
+
+def tarExt(filename, folder):
     try:
         r_file = tarfile.open(filename)
         r_file.extractall(path=f"./{folder}/")
@@ -121,10 +136,11 @@ def tarExt(filename,folder):
         logging.exception(e)
         return False
 
-def BarkPush(title,message):
+
+def BarkPush(title, message):
     try:
-        data = {"title":f"{title}","body":f"{message}"}
-        response = requests.post(url=bark_url,data=data)
+        data = {"title": f"{title}", "body": f"{message}"}
+        response = requests.post(url=BARK_URL, data=data)
         if response.json()['message'] == "success":
             logging.info("通知推送成功")
         else:
@@ -132,6 +148,7 @@ def BarkPush(title,message):
     except Exception as e:
         logging.warning("通知推送失败")
         logging.exception(e)
+
 
 def LogInit():
     logger = logging.getLogger()
@@ -142,11 +159,12 @@ def LogInit():
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     try:
-        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler = logging.FileHandler(LOG_FILE, encoding='utf-8')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
     except:
         ...
+
 
 if __name__ == "__main__":
     sys.exit(main())
