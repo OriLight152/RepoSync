@@ -1,0 +1,22 @@
+{
+    "repos": [
+        {
+            "repo": "DIYgod/APlayer",
+            "repo_name": "APlayer",
+            "repo_alias": "",
+            "sync_type": 1,
+            "sync_release_file": "",
+            "sync_folder": "dist",
+            "local_tag": "v1.10.1"
+        },
+        {
+            "repo": "alist-org/web-v2",
+            "repo_name": "web-v2",
+            "repo_alias": "alist-web-v2",
+            "sync_type": 2,
+            "sync_release_file": "dist.tar.gz",
+            "sync_folder": "",
+            "local_tag": "2.6.2"
+        }
+    ]
+}

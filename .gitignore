@@ -153,6 +153,3 @@ cython_debug/
 
 # vscode
 .vscode/
-
-# data
-repos.json
